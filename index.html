@@ -40,7 +40,7 @@
     </div>
 
     <div class="step slide" data-x="1000" data-y="0">
-        <h1>Что в вебе?</h1>
+        <h1>Что на клиенте?</h1>
 
         <h2>Различные имплементации</h2>
         <ul>
@@ -80,7 +80,7 @@
         <p>Все объединено в одном компоненте</p>
 
         <h2>Достоинства</h2>
-        <p>Модульность (возможно объединения через события)</p>
+        <p>Модульность (возможность объединения через события)</p>
         <p>Реюзабельность (в идеале)</p>
         <p>Подходит для большинства задач</p>
     </div>
@@ -274,7 +274,143 @@
         </div>
     </div>
 
+    <div class="step slide" data-x="10000" data-y="3000">
+        <h1>HH.Charm.Events</h1>
+        <h2>bind</h2>
+        <pre><code>model.bind(eventName, callback, context);
+// eventName = '*' подписывается на все события</code></pre>
 
+        <h2>fire / (trigger in BB)</h2>
+        <pre><code>model.fire(eventName, [arg1, [arg2], ...]);</code></pre>
+
+        <h2>unbind</h2>
+    </div>
+
+    <div class="step slide" data-x="11000" data-y="3000">
+        <h1>HH.Charm.Model</h1>
+
+        <h2>set</h2>
+        <pre><code>model.set(data, options);
+// Пример
+model.set({'name' : 'Hello'}, {'silent' : true})
+// {'silent' : true} не вызывает события изменения модели</code></pre>
+
+        <h2>get</h2>
+        <pre><code>model.get('key')</code></pre>
+    </div>
+
+    <div class="step slide invisible" data-x="11000" data-y="3000">
+        <h1>HH.Charm.Model</h1>
+
+        <pre><code>HH.Employer.Folders.Model = HH.Charm.Model.extend({
+    defaults: {
+        id: null, type: 'own', name: '', resumes: 0, shared: false
+    },
+    initialize: function() {
+        if (!this.get('sortIdx')) this.index();
+        this.bind("change:name", this.index, this);
+    },
+    index: function() {
+        this.set({
+            'sortIdx': this.get('name').toLowerCase()
+        }, {silent: true});
+    }
+});</code></pre>
+    </div>
+
+    <div class="step slide" data-x="12000" data-y="3000">
+        <h1>HH.Charm.Collection</h1>
+
+        <pre><code>each(cb, context) // Обход коллекции (forEach)
+get(id) // Получить модель по id
+at(index) // Получить модель по индексу
+add(models, options) // Добавить модель/и в коллекцию
+reset(models, options) // Сбрасывает коллекцию
+find(findFn) // Ищет модель по заданной функции
+
+/* Сортирует коллекцию,
+            если задана функция comparator */
+sort(options)
+        </code></pre>
+    </div>
+
+    <div class="step slide invisible" data-x="12000" data-y="3000">
+        <h1>HH.Charm.Collection</h1>
+
+        <pre><code>HH.Employer.Folders.Collection =
+HH.Charm.Collection.extend({
+    'model': HH.Employer.Folders.Model,
+    'comparator' : function(l, r) {
+        var c = l.get('sortIdx').localeCompare(r.get('sortIdx'));
+        return c == 0 ? (l.get('id') > r.get('id') ? 1 : -1) : c;
+    }
+});</code></pre>
+
+        <pre><code>collection = new HH.Employer.Folders.Collection(data);</code></pre>
+    </div>
+
+    <div class="step slide" data-x="13000" data-y="3000">
+        <h1>HH.Charm.View</h1>
+
+        <pre><code>$ - шорткат для селекторов
+ = function(selector) {
+    return jsx.Dom.getElementBySelector(this.el, selector);
+};
+
+view.$('.HH-Employer-Folders-Name')</code></pre>
+
+        <pre><code>// Удобный биндинг событий
+events: {
+    'change .HH-Employer-Folders-Checked' : 'checked'
+}</code></pre>
+
+
+
+    </div>
+
+    <div class="step slide invisible" data-x="13000" data-y="3000">
+        <h1>HH.Charm.View</h1>
+
+        <pre style="margin-top: 10px;"><code style="font-size: 75%;">HH.Employer.Folders.SearchItemView = HH.Charm.View.extend({
+    events: {
+        'change .HH-Employer-Folders-Checked' : 'checked'
+    },
+    initialize: function() {
+        this.model.bind('change', this.render, this);
+        this.checkbox = this.$('.HH-Employer-Folders-Checked');
+        this.checkbox.value = this.model.get('id');
+    },
+    checked: function() {
+        this.model.set({'selectedSearch' : this.checkbox.checked});
+    },
+    render: function() {
+        jsx.Dom.text(this.$('.HH-Employer-Folders-Name'), this.model.get('name'));
+    }
+});</code></pre>
+    </div>
+
+    <div class="step slide" data-x="14000" data-y="3000">
+        <h1>Список папок</h1>
+        <pre><code style="font-size: 75%;">HH.Employer.Folders.List = function() {
+    this.ready = function() { // Вызывается, когда коллекция готова
+        this.ownCollection.bind('*', this.render, this);
+        //Инициализируем views
+    };
+    this.render = function(event, model, collection, options) {
+        if (event == 'add') {
+            var el = this.itemTemplate.cloneNode(true);
+            //Инициализируем view
+        } else if (event == 'change:name') {...}
+     };
+};
+HH.Employer.Folders.List.prototype = HH.Employer.Folders.Listener;
+jsx.Components.buildComponent('{HH}.Employer.Folders.List',
+            HH.Employer.Folders.List, []);</code></pre>
+    </div>
+
+    <div class="step us" data-x="20000" data-y="3000" data-scale="4">
+        <h1>Вопросы?</h1>
+    </div>
 </div>
 
 <script src="js/impress.js"></script>
