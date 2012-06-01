@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1024" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Backbone на практике</title>
+
+    <meta name="description" content="Backbone" />
+    <meta name="author" content="Vitaly Glibin" />
+
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans:regular,semibold,italic,italicsemibold|PT+Sans:400,700,400italic,700italic|PT+Serif:400,700,400italic,700italic" rel="stylesheet" />
+
+    <link href="css/main.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/default.min.css">
+    <link href="css/bb.css" rel="stylesheet" />
+
+    <link rel="shortcut icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+</head>
+
+<body class="impress-not-supported">
+
+<div class="fallback-message">
+    <p>Your browser <b>doesn't support the features required</b> by impress.js, so you are presented with a simplified version of this presentation.</p>
+    <p>For the best experience please use the latest <b>Chrome</b>, <b>Safari</b> or <b>Firefox</b> browser.</p>
+</div>
+
+<div id="impress">
+<div class="step slide" data-x="0" data-y="0">
+    <h1 style="text-align: left; line-height: 1.2;">Использование Backbone на примере виджета комментариев к резюме соискателя</h1>
+</div>
+
+<div class="step slide" data-x="1000" data-y="0">
+    <h1>Задача</h1>
+
+    <h2>Виджет комментариев</h2>
+    <ul>
+        <li><b>C</b> - Добавление</li>
+        <li><b>R</b> - Чтение / получение</li>
+        <li><b>U</b> - Редактирование</li>
+        <li><b>D</b> - Удаление</li>
+    </ul>
+
+    <img src="i/task_from.png" style="position: absolute; right: 50px; bottom: 70px; width: 300px;"/>
+</div>
+
+<div class="step slide" data-x="2000" data-y="0">
+    <h1>Подробнее</h1>
+
+    <div class="clearfix" style="margin-top: 50px; margin-right: -30px;">
+        <img src="i/comment_add.png" />
+        <img src="i/comment_longlist.png" />
+        <img src="i/comment_edit.png" />
+    </div>
+</div>
+
+<div class="step slide" data-x="2000" data-y="1000">
+    <h1>Модульность компонентов</h1>
+
+    <pre><code>jsx.require(['{HH}.Charm.Model', ...], function() {
+
+    var Comments = {};
+
+    // Model and collection declaration
+    ...
+
+    jsx.loaded('{HH}.Resume.Comments.Collection');
+);
+    </code></pre>
+</div>
+
+<div class="step slide" data-x="3000" data-y="1000">
+    <h1>Модель</h1>
+
+    <pre><code>Comments.Model = HH.Charm.Model.extend({
+    sync: sync,
+    'defaults' : {
+        'id' : null,
+        'userId' : null,
+        'userName' : '',
+        'accessType' : 'COWORKERS',
+        'body' : '',
+        'creationTime' : 0,
+        'editable' : false,
+        'editMode' : false
+    }
+});</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="4000" data-y="1000">
+    <h1>Коллекция</h1>
+
+<pre><code style="font-size: 95%;">Comments.Collection = HH.Charm.Collection.extend({
+    model: Comments.Model,
+    loaded: false,
+    timeDiff: 0, // diff beetween server and client time
+    sync: sync,
+    url: function() {
+        return 'backend_url?applicantId=' + this.applicantId
+    },
+    comparator: function(left, right) { // sort function
+        return left.get('creationTime') < right.get('creationTime') ? 1 : -1;
+    },
+    initialize: function(models, options) {
+        this.applicantId = options.applicantId;
+    }
+});</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="5000" data-y="1000">
+    <h1>Доступ к коллекции</h1>
+
+<pre><code style="font-size: 95%;">var collections = {};
+jsx.CallBacks.add('HH-Resume-Comments-Load', function(options) {
+    var callback = options.callback, applicantId = options.applicantId;
+    var collection = collections[applicantId] ||
+        (collections[applicantId] = new Comments.Collection(null, {
+            'applicantId' : applicantId
+    }));
+    if (!collection.loaded) {
+        collection.loaded = true;
+        collection.fetch({success: function(c, resp) {
+            this.timeDiff = parseInt(new Date().getTime()/1000) - resp.ts;
+        }.bind(collection)});
+    }
+    callback(collection);
+}, HH.Resume.Comments);</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="6000" data-y="1000">
+    <h1>Инициализация в компоненте</h1>
+
+    <pre><code style="font-size: 95%;">jsx.Components.buildComponent('{HH}.Resume.Comments.Add',
+    function() {
+        this.init = function(element, params) {
+            this.collection = null;
+            jsx.CallBacks.dispatch('HH-Resume-Comments-Load',
+                HH.Resume.Comments,
+                {
+                    'applicantId' : this.params.applicantId,
+                    'callback' : function(collection) {
+                        this.collection = collection;
+                    }.bind(this)
+                }
+            );
+        };
+    }, ['{HH}.Resume.Comments.Collection', ...]</code></pre>
+</div>
+
+<div class="step slide" data-x="7000" data-y="1000">
+    <h1>Компоненты</h1>
+
+    <h2>Добавление комментария</h2>
+
+    <pre><code>{HH}.Resume.Comments.Add</code></pre>
+
+    <h2>Список комментариев</h2>
+
+    <pre><code>{HH}.Resume.Comments.List</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="8000" data-y="1000">
+    <h1>{HH}.Resume.Comments.Add</h1>
+
+    <pre><code style="font-size: 95%;">this.init = function(element, params) {
+    ...
+    jsx.Events.observe(this.buttonEl, 'click', this.add.bind(this));
+};
+this.add = function(e) {
+    ...
+    this.collection.create({
+        "body" : text,
+        "accessType" : accessType
+    }, {
+        'success' : function() { /* Change UI on success */ }.bind(this),
+        'failure' : function() { /* Change UI on failure */ },
+        'wait' : true // Add to collection after server return OK
+    });
+}</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="9000" data-y="1000">
+    <h1>{HH}.Resume.Comments.List</h1>
+
+    <pre><code style="font-size: 95%;">this.init = function(element, params) {
+    ...
+    jsx.CallBacks.dispatch('HH-Employer-Managers-Load',
+        HH.Resume.Comments,
+        {
+            'applicantId' : this.params.applicantId,
+            'callback' : function(collection) {
+                this.collection = collection;
+                this.collection.bind("all", this.render, this);
+
+                if (collection.loaded) this.render('reset');
+            }.bind(this)
+        }
+    );
+};</code></pre>
+</div>
+
+<div class="step slide no-padding" data-x="10000" data-y="1000">
+    <h1>{HH}.Resume.Comments.List</h1>
+
+<pre><code style="font-size: 95%;">this.render = function(event, model, collection, options) {
+    if (event === 'reset') {
+        this.collection.each(this.add, this);
+    } else if (event === 'add') {
+        this.add(model);
+    }
+
+    if (['reset', 'add', 'remove', 'more'].indexOf(event) >= 0) {
+        this.collection.each(function(model, index) {
+            model.set({'visible' : (index < this.showLast ? true : false)});
+        }.bind(this));
+    }
+};</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="11000" data-y="1000">
+    <h1>{HH}.Resume.Comments.List</h1>
+
+<pre><code style="font-size: 95%;">this.add = function(model) {
+    var el = (model.get('editable') ? this.templateEditable : this.template)
+             .cloneNode(true);
+    var idx = model.collection.index(model) - 1;
+    if (idx < 0) {
+        jsx.Dom.insertAfter(el, this.template);
+    } else {
+        jsx.Dom.insertAfter(el, model.collection.at(idx).views['list'].el);
+    }
+    new (model.get('editable') ? ViewEditable : View)({
+        model: model,
+        el: el,
+        trl: this.params.trl
+    });
+};</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="12000" data-y="1000">
+    <h1>{HH}.Resume.Comments.List</h1>
+
+<pre><code style="font-size: 90%;">var View = Backbone.View.extend({
+    events: {
+        'click .HH-Resume-Comments-List-ShowAll' : 'toggleShow'
+    },
+    initialize: function() {
+        this.model.bind('change:body change:visible change:showFull',
+                        this.render, this);
+        this.model.bind('destroy', this.remove, this);
+        this.model.views['list'] = this;
+        this.textEl = this.$('.HH-Resume-Comments-List-Text')[0];
+        ...
+        this.render();
+    }, toggleShow: function() {
+        this.model.set({'showFull' : !this.model.get('showFull')});
+    },</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="13000" data-y="1000">
+    <h1>View</h1>
+
+<pre><code style="font-size: 90%;">render: function() {
+    jsx.Dom.text(this.textEl, this.divide());
+    jsx.Dom.text(this.userEl, this.model.get('userName'));
+    var d = new Date(this.model.get('creationTime')
+            + this.model.collection.timeDiff*1000);
+    jsx.Dom.text(this.dateEl, jsx.Dates.toFormat(d, '%d.%m.%y %H:%M'));
+    jsx.Dom.text(this.visibilityEl,
+        this.model.get('accessType') == 'OWNER' ?
+        ', ' + this.options.trl['visibleToMe'] :
+        '');
+
+    (this.model.get('visible') ?
+        jsx.Dom.removeClassName : jsx.Dom.addClassName
+    )(this.el, 'g-hidden');
+}</code></pre>
+</div>
+
+<div class="step slide no-padding" data-x="14000" data-y="1000">
+    <h1>ViewEditable</h1>
+
+<pre><code>var ViewEditable = View.extend({
+    events: {
+        'click .HH-Resume-Comments-List-Delete' : 'destroy',
+        'click .HH-Resume-Comments-List-Button' : 'save'
+    },
+    initialize: function() {
+        ViewEditable.__super__.initialize.apply(this);
+        ...
+    },
+    destroy: function() {
+        this.model.destroy({'wait' : true});
+    },
+    ...
+</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="15000" data-y="1000">
+    <h1>ViewEditable</h1>
+
+<pre><code>save: function() {
+    this.model.save({
+        'body' : jsx.Dom.val(this.textAreaEl),
+        'accessType' : this.ownerEl.checked ? 'OWNER' : 'COWORKERS'
+    }, {
+        'wait': true,
+        'success': function() {
+            this.cancel(); // Close edit
+        }.bind(this)
+    });
+}</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="16000" data-y="1000">
+    <h1>Sync</h1>
+
+    <pre><code>var methodMap = {
+    'create': 'POST',
+    'read'  : 'GET'
+    'update': 'PUT',
+    'delete': 'DELETE',
+};
+
+Backbone.emulateHTTP = true ->
+    if (type === 'PUT' || type === 'DELETE') {
+        params.type = 'POST';
+        params.beforeSend = function(xhr) {
+            xhr.setRequestHeader('X-HTTP-Method-Override', type);
+        };
+    }</code></pre>
+</div>
+
+<div class="step slide no-bg no-padding" data-x="17000" data-y="1000">
+    <h1>Sync</h1>
+
+<pre><code style="font-size: 90%;">var sync = function(method, model, options) {
+    if (method == 'create' || method == 'update' || method == 'delete') {
+        new jsxAjax.XmlHttp.Request(model.collection.url(), {
+            method : 'post',
+            parameters : params,
+            onSuccess : function(resp) {
+                var data = JSON.parse(resp.responseText) || {};
+                if (options.success) options.success(data);
+            },
+            onFailure : options.failure || function() {}
+        });
+    } else {
+        Backbone.sync(method, model, options);
+    }
+};</code></pre>
+</div>
+
+<div class="step us" data-x="20000" data-y="3000" data-scale="4">
+    <h1>Вопросы?</h1>
+</div>
+</div>
+
+<script src="js/impress.js"></script>
+<script src="js/highlight.min.js"></script>
+
+<script>impress().init();</script>
+
+<script>
+    hljs.tabReplace = '    ';
+    hljs.initHighlightingOnLoad();
+</script>
+
+</body>
+</html>
