@@ -58,7 +58,7 @@
 <div class="step slide" data-x="2000" data-y="1000">
     <h1>Модульность компонентов</h1>
 
-    <pre><code>jsx.require(['{HH}.Charm.Model', ...], function() {
+    <pre><code>jsx.require([...], function() {
 
     var Comments = {};
 
@@ -73,7 +73,7 @@
 <div class="step slide" data-x="3000" data-y="1000">
     <h1>Модель</h1>
 
-    <pre><code>Comments.Model = HH.Charm.Model.extend({
+    <pre><code>Comments.Model = Bakbone.Model.extend({
     sync: sync,
     'defaults' : {
         'id' : null,
@@ -91,7 +91,7 @@
 <div class="step slide no-bg no-padding" data-x="4000" data-y="1000">
     <h1>Коллекция</h1>
 
-<pre><code style="font-size: 95%;">Comments.Collection = HH.Charm.Collection.extend({
+<pre><code style="font-size: 95%;">Comments.Collection = Backbone.Collection.extend({
     model: Comments.Model,
     loaded: false,
     timeDiff: 0, // diff beetween server and client time
@@ -350,6 +350,12 @@ Backbone.emulateHTTP = true ->
         Backbone.sync(method, model, options);
     }
 };</code></pre>
+</div>
+
+<div class="step slide" data-x="18000" data-y="1000">
+    <h1>Sync</h1>
+
+    <h2 style="line-height: 1.5; text-align: center;">Но лучше использовать нативный Backbone.sync</h2>
 </div>
 
 <div class="step us" data-x="20000" data-y="3000" data-scale="4">
